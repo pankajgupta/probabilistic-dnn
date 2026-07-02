@@ -1,0 +1,215 @@
+{
+  "pcg64": {
+    "source": "pcg64",
+    "seed": 12345,
+    "n_samples": 20000,
+    "period_estimate": {
+      "test": "period_estimate",
+      "max_draws": 20000,
+      "period": null,
+      "pass": true
+    },
+    "lag_autocorrelation": {
+      "test": "lag_autocorrelation",
+      "n": 20000,
+      "alpha": 0.01,
+      "lags": {
+        "1": {
+          "r": 0.003928414231286682,
+          "threshold": 0.018213863677184493,
+          "pass": true
+        },
+        "2": {
+          "r": 0.007562118066776924,
+          "threshold": 0.018213863677184493,
+          "pass": true
+        },
+        "3": {
+          "r": 0.0035280729390780733,
+          "threshold": 0.018213863677184493,
+          "pass": true
+        },
+        "10": {
+          "r": -0.0025196292903378026,
+          "threshold": 0.018213863677184493,
+          "pass": true
+        }
+      },
+      "pass": true
+    },
+    "histogram_chi2": {
+      "test": "histogram_chi2",
+      "n": 20000,
+      "bins": 64,
+      "chi2": 78.5088,
+      "dof": 63,
+      "critical": 92.01002361413207,
+      "p_value": 0.09004208944535244,
+      "alpha": 0.01,
+      "pass": true,
+      "decorrelation_stride": 1
+    },
+    "overall_pass": true
+  },
+  "lfsr8": {
+    "source": "lfsr8",
+    "seed": 12345,
+    "n_samples": 20000,
+    "period_estimate": {
+      "test": "period_estimate",
+      "max_draws": 20000,
+      "period": 255,
+      "pass": false
+    },
+    "lag_autocorrelation": {
+      "test": "lag_autocorrelation",
+      "n": 20000,
+      "alpha": 0.01,
+      "lags": {
+        "1": {
+          "r": 0.37503155120837034,
+          "threshold": 0.018213863677184493,
+          "pass": false
+        },
+        "2": {
+          "r": 0.003318727874425113,
+          "threshold": 0.018213863677184493,
+          "pass": true
+        },
+        "3": {
+          "r": 0.018110324082717923,
+          "threshold": 0.018213863677184493,
+          "pass": true
+        },
+        "10": {
+          "r": -0.01223100311346559,
+          "threshold": 0.018213863677184493,
+          "pass": true
+        },
+        "255": {
+          "r": 0.9872462640771267,
+          "threshold": 0.018213863677184493,
+          "pass": false
+        }
+      },
+      "pass": false
+    },
+    "histogram_chi2": {
+      "test": "histogram_chi2",
+      "n": 20000,
+      "bins": 64,
+      "chi2": 19.731200000000005,
+      "dof": 63,
+      "critical": 92.01002361413207,
+      "p_value": 0.9999999669471442,
+      "alpha": 0.01,
+      "pass": true,
+      "decorrelation_stride": 4
+    },
+    "overall_pass": false
+  },
+  "lfsr16": {
+    "source": "lfsr16",
+    "seed": 12345,
+    "n_samples": 20000,
+    "period_estimate": {
+      "test": "period_estimate",
+      "max_draws": 70000,
+      "period": 65535,
+      "pass": false
+    },
+    "lag_autocorrelation": {
+      "test": "lag_autocorrelation",
+      "n": 20000,
+      "alpha": 0.01,
+      "lags": {
+        "1": {
+          "r": 0.0927433747980331,
+          "threshold": 0.018213863677184493,
+          "pass": false
+        },
+        "2": {
+          "r": -0.001435804778160451,
+          "threshold": 0.018213863677184493,
+          "pass": true
+        },
+        "3": {
+          "r": 0.0015094703498203922,
+          "threshold": 0.018213863677184493,
+          "pass": true
+        },
+        "10": {
+          "r": -0.00028505953300113476,
+          "threshold": 0.018213863677184493,
+          "pass": true
+        }
+      },
+      "pass": false
+    },
+    "histogram_chi2": {
+      "test": "histogram_chi2",
+      "n": 20000,
+      "bins": 64,
+      "chi2": 39.4816,
+      "dof": 63,
+      "critical": 92.01002361413207,
+      "p_value": 0.9911510470351322,
+      "alpha": 0.01,
+      "pass": true,
+      "decorrelation_stride": 2
+    },
+    "overall_pass": false
+  },
+  "ar1_rho0.9": {
+    "source": "ar1_rho0.9",
+    "seed": 12345,
+    "n_samples": 20000,
+    "period_estimate": {
+      "test": "period_estimate",
+      "max_draws": 20000,
+      "period": null,
+      "pass": true
+    },
+    "lag_autocorrelation": {
+      "test": "lag_autocorrelation",
+      "n": 20000,
+      "alpha": 0.01,
+      "lags": {
+        "1": {
+          "r": 0.8956262938473978,
+          "threshold": 0.018213863677184493,
+          "pass": false
+        },
+        "2": {
+          "r": 0.8031405773345496,
+          "threshold": 0.018213863677184493,
+          "pass": false
+        },
+        "3": {
+          "r": 0.7192539300772364,
+          "threshold": 0.018213863677184493,
+          "pass": false
+        },
+        "10": {
+          "r": 0.3467528963466496,
+          "threshold": 0.018213863677184493,
+          "pass": false
+        }
+      },
+      "pass": false
+    },
+    "histogram_chi2": {
+      "test": "histogram_chi2",
+      "n": 20000,
+      "bins": 64,
+      "chi2": 64.9536,
+      "dof": 63,
+      "critical": 92.01002361413207,
+      "p_value": 0.4084406604719707,
+      "alpha": 0.01,
+      "pass": true,
+      "decorrelation_stride": 28
+    },
+    "overall_pass": false
+  }
+}

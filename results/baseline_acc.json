@@ -1,0 +1,124 @@
+{
+  "large_s0": {
+    "tag": "large",
+    "hidden": [
+      256,
+      128
+    ],
+    "seed": 0,
+    "test_acc": 0.9733,
+    "train_seconds": 6.471277952194214
+  },
+  "large_s1": {
+    "tag": "large",
+    "hidden": [
+      256,
+      128
+    ],
+    "seed": 1,
+    "test_acc": 0.9729,
+    "train_seconds": 6.958475828170776
+  },
+  "large_s2": {
+    "tag": "large",
+    "hidden": [
+      256,
+      128
+    ],
+    "seed": 2,
+    "test_acc": 0.9702,
+    "train_seconds": 6.566728353500366
+  },
+  "large_mean": 0.9721333333333334,
+  "large_std": 0.0013767917618709277,
+  "mid_s0": {
+    "tag": "mid",
+    "hidden": [
+      64,
+      32
+    ],
+    "seed": 0,
+    "test_acc": 0.964,
+    "train_seconds": 5.3420469760894775
+  },
+  "mid_s1": {
+    "tag": "mid",
+    "hidden": [
+      64,
+      32
+    ],
+    "seed": 1,
+    "test_acc": 0.9638,
+    "train_seconds": 5.44654393196106
+  },
+  "mid_s2": {
+    "tag": "mid",
+    "hidden": [
+      64,
+      32
+    ],
+    "seed": 2,
+    "test_acc": 0.9644,
+    "train_seconds": 5.402628183364868
+  },
+  "mid_mean": 0.9640666666666666,
+  "mid_std": 0.0002494438257849514,
+  "small_s0": {
+    "tag": "small",
+    "hidden": [
+      32,
+      16
+    ],
+    "seed": 0,
+    "test_acc": 0.9543,
+    "train_seconds": 5.1197168827056885
+  },
+  "small_s1": {
+    "tag": "small",
+    "hidden": [
+      32,
+      16
+    ],
+    "seed": 1,
+    "test_acc": 0.9556,
+    "train_seconds": 5.130867004394531
+  },
+  "small_s2": {
+    "tag": "small",
+    "hidden": [
+      32,
+      16
+    ],
+    "seed": 2,
+    "test_acc": 0.9532,
+    "train_seconds": 5.141366004943848
+  },
+  "small_mean": 0.9543666666666667,
+  "small_std": 0.00098092926463746,
+  "_meta": {
+    "widths": {
+      "large": [
+        256,
+        128
+      ],
+      "mid": [
+        64,
+        32
+      ],
+      "small": [
+        32,
+        16
+      ]
+    },
+    "seeds": [
+      0,
+      1,
+      2
+    ],
+    "lr": 0.001,
+    "batch_size": 128,
+    "epochs": 4,
+    "num_threads": 8,
+    "total_train_seconds": 51.58022975921631
+  }
+}
