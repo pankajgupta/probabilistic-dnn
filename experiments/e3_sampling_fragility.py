@@ -7,7 +7,7 @@ shared_across_neurons (iid across samples, shared across neurons within a
 sample -- a different correlation axis). Frozen weights (results/models/*.pt)
 throughout; only the injected randomness changes.
 
-Sections (see HANDOFF.md section 4, E3 row):
+Sections (see docs/HANDOFF.md section 4, E3 row):
   1. MAIN GRID: mid width (largest sampling gain, 13.7pts in sanity_check.json)
      x 3 training seeds x rho in {0,.25,.5,.75,.9,.95,.99,1} x S in
      {1,2,4,8,16,32,64}, full precision.

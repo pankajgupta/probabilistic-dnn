@@ -40,7 +40,7 @@ python3 -m venv .venv
 
 Everything is CPU-only. Reference machine: Apple M3 Pro, 12 cores; total compute for
 the full verification below is roughly 45–60 min. MNIST downloads to `./data` on
-first use. Read `README.md` (motivation), `HANDOFF.md` (original build brief),
+first use. Read `README.md` (motivation), `docs/HANDOFF.md` (original build brief),
 `reports/REPORT.md` (the claims you are checking). The committed `results/*.json` are the
 original run's outputs — **do not overwrite them; write your rerun outputs elsewhere
 and diff** (e.g. `git stash` your results or copy `results/` aside first).

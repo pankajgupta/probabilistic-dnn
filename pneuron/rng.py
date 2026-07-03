@@ -1,7 +1,7 @@
 """RNG utilities: a bit-level Galois LFSR and statistical validation tests.
 
 Every noise source we plug into the p-neuron comparator must be validated
-BEFORE use (HANDOFF.md sec 3.3 / sec 7 step 2). This module provides:
+BEFORE use (docs/HANDOFF.md sec 3.3 / sec 7 step 2). This module provides:
 
   - GaloisLFSR: a hardware-motivated, deliberately-defective generator. Its
     n-bit register cycles through at most 2^n - 1 nonzero states before

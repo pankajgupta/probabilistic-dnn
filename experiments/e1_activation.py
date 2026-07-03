@@ -4,7 +4,7 @@ For each randomness defect, the measured activation P(m=+1 | I) of a single
 p-neuron (m = sign(tanh(I) - r), r drawn from the defective source) must match
 the closed-form/numerically-computed CDF_r(tanh(I)) implied by the defective
 source's own distribution -- this is the inverse-sampling-theorem (IST) claim
-from HANDOFF.md sec 2 / sec 4 (E1 row).
+from docs/HANDOFF.md sec 2 / sec 4 (E1 row).
 
 Uses pneuron/neuron.py::firing_prob (measurement) unmodified, and the noise
 sources in pneuron/noise.py (UniformNoise, AR1UniformNoise) and pneuron/rng.py

@@ -3,7 +3,7 @@
 Hidden activations are tanh (not ReLU) on purpose: at p-bit inference each
 tanh(z) is replaced by sign(tanh(z) - r) with r ~ Uniform[-1,1], and
 E[sign(tanh(z) - r)] = tanh(z). So a tanh-trained net has a p-neuron
-counterpart with matching expected activation (see HANDOFF.md section 2).
+counterpart with matching expected activation (see docs/HANDOFF.md section 2).
 """
 
 import torch

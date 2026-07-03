@@ -5,7 +5,7 @@ r ~ Uniform[-1,1] drawn fresh every stochastic pass (see pneuron/neuron.py for
 the numpy single-neuron version of the same primitive). S stochastic passes
 are run per input and the *logits* are averaged over S; since E[m] = tanh(z)
 for ideal r, averaged logits converge to the deterministic net's logits as S
-grows (exactly, for a single p-bit hidden layer; see HANDOFF.md section 2).
+grows (exactly, for a single p-bit hidden layer; see docs/HANDOFF.md section 2).
 
 This module is weight-only: it does not import models/net.py. It accepts
 either an object exposing `.fcs` (a ModuleList of nn.Linear, tanh between

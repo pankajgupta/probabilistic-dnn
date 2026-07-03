@@ -2,7 +2,7 @@
 
 Trains 3 architectures x 3 seeds = 9 models with plain backprop. These are
 the frozen-weight baselines that later get wrapped with p-neuron activations
-at inference (the "add noise to a trained model" route, HANDOFF.md section 3).
+at inference (the "add noise to a trained model" route, docs/HANDOFF.md section 3).
 
 Outputs:
   results/models/{tag}_s{seed}.pt   - checkpoint: state_dict + config dict
