@@ -56,6 +56,21 @@ class NoiseConfig:
         Ignored by the MLP path (make_noise/pdnn_forward). Composable with
         rho (rho decorrelates along S; conv_broadcast reduces independence
         along C and/or H,W -- orthogonal axes).
+    binarize_after_pool: conv-path stage order (see pdnn_forward_conv). If
+        False (default, the naive order): each "conv" stage binarizes its
+        own tanh immediately (m = sign(tanh(z) - r)), and the following
+        "pool" stage maxpools the *p-bit codes* m -- this is biased,
+        E[maxpool(m)] != maxpool(E[m]) = maxpool(tanh(z)), because maxpool
+        is nonlinear and does not commute with expectation (Jensen gap);
+        near-chance accuracy results (see docs/HANDOFF.md, CNN-A's finding).
+        If True: a "conv" stage immediately followed by a "pool" stage is
+        replayed as z = conv(x), a = tanh(z), pooled_a = pool(a) (maxpool
+        applied to the CONTINUOUS activation), THEN m = sign(pooled_a - r)
+        -- the comparator is deferred until after pooling, so
+        E[m] = pooled_a = maxpool(tanh(z)) exactly, matching what the
+        deterministic net itself computes; the S->inf limit is unbiased
+        again. FC stages (no pooling) are unaffected either way. Ignored by
+        the MLP path (pdnn_forward has no pool stages).
     """
 
     bitdepth: Optional[int] = None
@@ -64,6 +79,7 @@ class NoiseConfig:
     shared_across_neurons: bool = False
     uniform_source: Optional[Callable[[int], np.ndarray]] = None
     conv_broadcast: Optional[str] = None
+    binarize_after_pool: bool = False
 
 
 _UNIT_EPS = 1e-12  # clamp for ndtri so 0/1 don't map to +-inf
@@ -360,6 +376,17 @@ def pdnn_forward_conv(model, X, S, cfg=None, seed=0, return_samples=False):
     "flatten" reshapes (S,B,C,H,W) -> (S,B,C*H*W). "fc_out" is the plain
     linear output stage (no p-bit), matching pdnn_forward's convention.
 
+    This is the naive/default order (cfg.binarize_after_pool=False): pool
+    sees the p-bit codes m, not the continuous tanh -- see NoiseConfig's
+    docstring for why that biases E[maxpool(m)] away from maxpool(tanh(z)).
+    When cfg.binarize_after_pool=True, a "conv" stage immediately followed
+    by a "pool" stage is instead replayed as z = conv(x), a = tanh(z),
+    pooled_a = pool(a), m = sign(pooled_a - r) -- the comparator is deferred
+    until after pooling (pool-compatible order), consuming both stages in
+    one loop step (see the (i, i+1) lookahead below). A "conv" stage NOT
+    followed by "pool" (not the case in models/cnn.py's CNN today) falls
+    back to binarizing immediately, same as the naive order.
+
     Deterministic given seed: one torch.Generator, consumed sequentially
     (chunk by chunk, stage by stage) -- same discipline as pdnn_forward.
 
@@ -388,14 +415,26 @@ def pdnn_forward_conv(model, X, S, cfg=None, seed=0, return_samples=False):
     chunk = _batch_chunk_size_conv(S, max_elems, B)
 
     sample_logits = torch.empty(S, B, n_classes)
+    n_stages = len(stages)
     for start in range(0, B, chunk):
         end = min(start + chunk, B)
         b = end - start
         x = X[start:end].unsqueeze(0).expand(S, b, *X.shape[1:])
-        for layer, kind in stages:
+        i = 0
+        while i < n_stages:
+            layer, kind = stages[i]
             if kind == "conv":
                 z = _apply_over_sb(x, layer)
                 a = torch.tanh(z)
+                next_kind = stages[i + 1][1] if i + 1 < n_stages else None
+                if cfg.binarize_after_pool and next_kind == "pool":
+                    pool_layer = stages[i + 1][0]
+                    pooled_a = _apply_over_sb(a, pool_layer)
+                    r = make_noise_conv(pooled_a.shape, gen, cfg)
+                    x = torch.where(pooled_a - r >= 0, torch.ones_like(pooled_a),
+                                     -torch.ones_like(pooled_a))
+                    i += 2
+                    continue
                 r = make_noise_conv(a.shape, gen, cfg)
                 x = torch.where(a - r >= 0, torch.ones_like(a), -torch.ones_like(a))
             elif kind == "pool":
@@ -411,6 +450,7 @@ def pdnn_forward_conv(model, X, S, cfg=None, seed=0, return_samples=False):
                 x = _apply_over_sb(x, layer)
             else:
                 raise ValueError(f"unknown stage kind: {kind!r}")
+            i += 1
         sample_logits[:, start:end, :] = x
 
     avg_logits = sample_logits.mean(dim=0)

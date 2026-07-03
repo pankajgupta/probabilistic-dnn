@@ -84,7 +84,17 @@ defect — is the per-draw corruption averaging cannot undo; and the same 8-bit 
 that is statistically indistinguishable from ideal on MNIST sits ~82× above the ideal
 total-variation floor on the exact sampling task, so "good enough" is task-dependent.
 
-Full write-up with all nine figures: [`reports/REPORT.md`](reports/REPORT.md) or the
+An exploratory extension (report §3.6, 2 train seeds) finds the frozen-swap route
+does *not* carry to a pooled CNN: it breaks via two identified, reproducible
+mechanisms — a maxpool-over-codes bias that makes even the infinite-sample limit
+wrong, and, after fixing the pool order, a residual cross-stage Jensen bias
+concentrated in the weakly-saturated first conv stage that leaves a hard ~11 pp
+plateau below the deterministic reference. Because that ideal-noise CNN baseline
+never cleared its sanity gate the correlation sweep was not run there, so H3's
+transfer to CNNs is untested (not refuted) — the headline claims above are
+MLP-scope.
+
+Full write-up with all ten figures: [`reports/REPORT.md`](reports/REPORT.md) or the
 self-contained [`reports/report.html`](reports/report.html).
 
 ## Repo layout
@@ -95,7 +105,7 @@ groundtruth/   frustrated-triangle Gibbs sampler + exact distribution + TV dista
 models/        MLP, training scripts (deterministic + STE), p-DNN inference wrapper
 experiments/   one runner per hypothesis (e1–e5), sanity check, figure generation
 results/       all experiment outputs (JSON, seeds logged) + model checkpoints
-plots/         the nine report figures (regenerable from results/ JSONs)
+plots/         the ten report figures (regenerable from results/ JSONs)
 tests/         unit tests for the noise wrapper and RNG suite
 ```
 
