@@ -84,8 +84,8 @@ defect — is the per-draw corruption averaging cannot undo; and the same 8-bit 
 that is statistically indistinguishable from ideal on MNIST sits ~82× above the ideal
 total-variation floor on the exact sampling task, so "good enough" is task-dependent.
 
-Full write-up with all nine figures: [`REPORT.md`](REPORT.md) or the self-contained
-[`report.html`](report.html).
+Full write-up with all nine figures: [`reports/REPORT.md`](reports/REPORT.md) or the
+self-contained [`reports/report.html`](reports/report.html).
 
 ## Repo layout
 

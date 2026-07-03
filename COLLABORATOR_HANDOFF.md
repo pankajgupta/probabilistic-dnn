@@ -41,7 +41,7 @@ python3 -m venv .venv
 Everything is CPU-only. Reference machine: Apple M3 Pro, 12 cores; total compute for
 the full verification below is roughly 45–60 min. MNIST downloads to `./data` on
 first use. Read `README.md` (motivation), `HANDOFF.md` (original build brief),
-`REPORT.md` (the claims you are checking). The committed `results/*.json` are the
+`reports/REPORT.md` (the claims you are checking). The committed `results/*.json` are the
 original run's outputs — **do not overwrite them; write your rerun outputs elsewhere
 and diff** (e.g. `git stash` your results or copy `results/` aside first).
 
@@ -167,7 +167,7 @@ carried into the regime ρ=1 forces (~constant +9.9 pp across S).
 ```bash
 .venv/bin/python experiments/make_figures.py
 ```
-Regenerates all 9 figures from JSONs. Then spot-check REPORT.md claims against your
+Regenerates all 9 figures from JSONs. Then spot-check reports/REPORT.md claims against your
 rerun JSONs — especially every bolded number above. The original run caught (and
 fixed) one aggregation error (a seed-0-only value quoted as the 3-seed aggregate);
 assume more such errors could exist and hunt for them.
@@ -228,7 +228,7 @@ view of whether the headline sentence is supported as worded.
 | `models/{net,train_baselines,pdnn,ste_train}.py` | MLP, training, p-DNN wrapper, STE |
 | `experiments/e1..e5, sanity_check, make_figures` | one runner per hypothesis |
 | `results/*.json` | original outputs, seeds logged (do not overwrite) |
-| `plots/`, `REPORT.md`, `report.html` | figures and the report under test |
+| `plots/`, `reports/REPORT.md`, `reports/report.html` | figures and the report under test |
 
 Provenance: built 2026-07-02/03 in a multi-agent Claude Code session (git history
 `cfdb0d8..37f103f` shows the phase gates). Independent verification is the point of

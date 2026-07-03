@@ -28,19 +28,19 @@ Neither anchor paper studies degraded randomness -- both assume an ideal generat
 
 For each defect we measured the single-neuron firing rate `P(m=+1 | I)` over a 61-point input grid (20,000 Monte-Carlo draws per point, 3 seeds) and compared it to the IST prediction `CDF_r(tanh(I))` computed from the defective `r`'s actual distribution.
 
-![Measured vs IST-predicted firing probability for six defects plus two temporal negative controls](plots/fig1_activation_deformation.png)
+![Measured vs IST-predicted firing probability for six defects plus two temporal negative controls](../plots/fig1_activation_deformation.png)
 
 Every measured curve matches its IST prediction to within max-absolute-error 0.0037-0.0077, all essentially at the Monte-Carlo noise floor of `sqrt(0.25/20000) = 0.0035`: triangular 0.0047, truncated-Gaussian 0.0051, ideal 0.0063, bias-0.1 0.0070, bit-depth k=2 0.0071, bias-0.3 0.0074, k=1/k=3 0.0077. The two temporal defects -- AR(1) rho=0.9 (copula) and the 8-bit LFSR -- are **negative controls**: correlation and periodicity are invisible to a per-input marginal measurement, so both are predicted (and observed, errors 0.0077 and 0.0037) to match the ideal-like CDF rather than a deformed one. A large error *there* would signal a bug, not H1 support. **Verdict: supported** -- the IST is the correct mechanistic account, and correlation/LFSR are marginal-invisible, which motivates the multi-sample experiments where their effect actually appears.
 
 ### 3.2 H2 -- the network is highly tolerant of low precision (supported, stronger than expected)
 
-![Accuracy vs RNG bit-depth k for S = 1, 4, 32](plots/fig2_precision_tolerance.png)
+![Accuracy vs RNG bit-depth k for S = 1, 4, 32](../plots/fig2_precision_tolerance.png)
 
 There is **no failure knee** as precision drops. On the mid net at S=32, k=1 reaches 95.89% versus 96.18% at k=16 -- a cost of only **0.29 pp** for 1-bit randomness. Accuracy is flat from k=16 down to k~2, and only the k=1->k=2 step registers at all.
 
 A counter-intuitive effect appears at S=1: **coarser noise is better**. At S=1 on the mid net, k=1 scores 89.78%, beating k=16 (82.55%, statistically identical to the unquantized full-precision ideal, also 82.55%) by **+7.2 pp**. The anomaly detector flags exactly this as accuracy *dropping* as precision *increases* from 1 to 2 bits (e.g. 89.78%->85.71% on mid). The most plausible account is that 1-bit quantization coarsens `r` toward a two-level sign, reducing per-draw variance in the argmax at a single sample; **we flag this mechanism as an inference from the pattern, not a direct measurement** -- it is consistent with variance reduction but we did not measure the logit variance decomposition.
 
-![Accuracy (top) and triangle TV (bottom) vs bias b, shared axis](plots/fig3_bias.png)
+![Accuracy (top) and triangle TV (bottom) vs bias b, shared axis](../plots/fig3_bias.png)
 
 Bias is the one *per-draw* defect that genuinely damages the network. At b=0.5 the mid net falls to 60.4% at S=1 and recovers only to 86.7% at S=32 -- averaging cannot undo it, because a mean-shifted `r` is a *systematic* rather than zero-mean corruption of every activation. This contrasts with the zero-mean quantization defect, where S=32 stays at ~96%. **Verdict: supported** -- tolerance to precision is strong (even improving at S=1 for a mechanism we can only infer), while bias, being systematic, is the damaging per-draw defect.
 
@@ -48,7 +48,7 @@ Bias is the one *per-draw* defect that genuinely damages the network. At b=0.5 t
 
 This is the headline. We sweep accuracy versus number of inference samples S for independent (rho=0) versus correlated noise.
 
-![Headline: accuracy vs samples S for ideal, rho=0.9/0.99/1.0, and k=2-independent noise](plots/fig4_headline_sampling_fragility.png)
+![Headline: accuracy vs samples S for ideal, rho=0.9/0.99/1.0, and k=2-independent noise](../plots/fig4_headline_sampling_fragility.png)
 
 The ideal sampling gain on the mid net is +13.68 pp (82.55%->96.30%, S=1->64). Correlation degrades it in a graded, not binary, way:
 
@@ -63,11 +63,11 @@ The precise statement matters: **only rho=1.0 truly collapses the gain** -- it i
 
 The independence-over-precision contrast is direct: a **2-bit independent** generator reaches 96.16% at S=64, beating a **full-precision rho=0.9 correlated** generator at 94.94% (+1.22 pp), while the 2-bit generator costs only 0.14 pp against the full-precision ideal (96.16 vs 96.30). Two bits of independent randomness are worth more than full precision that is correlated. The effect is width-robust: at all three widths rho=1.0 is flat and rho=0.9 recovers more slowly than ideal (e.g. large net rho=1.0 stays ~91.8% across S, small net ~77.9%).
 
-![Left: accuracy over the full rho x S grid. Right: cross-neuron sharing](plots/fig5_correlation_grid.png)
+![Left: accuracy over the full rho x S grid. Right: cross-neuron sharing](../plots/fig5_correlation_grid.png)
 
 Sharing one noise draw *across neurons within a forward pass* is a **distinct failure mode**: it costs 6.2 pp at S=1 (76.3% vs 82.55% ideal) but the multi-sample gain is intact, recovering to 96.22% at S=64 (~ ideal 96.30%). So it is specifically independence **across samples** -- not across neurons -- that is load-bearing for the sampling advantage.
 
-![ECE vs S for ideal, k=2-independent, rho=0.9, rho=1.0](plots/fig6_ece.png)
+![ECE vs S for ideal, k=2-independent, rho=0.9, rho=1.0](../plots/fig6_ece.png)
 
 Calibration is an **honest complication, not a clean win** (single train seed, 5 noise seeds). Under ideal noise, expected calibration error *rises* with S (0.051 at S=1 -> 0.170 at S=64): averaging many one-hot-ish stochastic softmaxes makes the ensemble *underconfident*. Correlation, by preventing that averaging, keeps ECE flat -- rho=1.0 stays ~0.051-0.053 and ends up with *lower* measured ECE than ideal at S=64 (0.053 vs 0.170). We do **not** read this as "correlation improves calibration" or "correlation hurts calibration"; it is an artifact of the underconfidence direction and the averaging mechanism, and it flags that ECE is not a reliable stand-in for randomness quality here. **Verdict: supported with nuance** -- independence across samples governs the multi-sample gain; rho=1.0 collapses it, high rho defers it past practical budgets, cross-neuron sharing is a separate S=1 effect, and the ECE behavior is a genuine ambiguity we report rather than spin.
 
@@ -75,19 +75,19 @@ Calibration is an **honest complication, not a clean win** (single train seed, 5
 
 We apply the same defect families to the frustrated triangle, where deviations are provable via TV distance from the exact distribution, and overlay with MNIST sensitivity.
 
-![Cross-task overlay: triangle TV (top, log y) and MNIST accuracy drop (bottom)](plots/fig7_cross_task.png)
+![Cross-task overlay: triangle TV (top, log y) and MNIST accuracy drop (bottom)](../plots/fig7_cross_task.png)
 
 Bias produces the fastest TV growth, monotonically to 0.271 at b=0.5 (from 0.056 at b=0.1). Bit-depth shows a sharp **threshold**: for k<=4 the TV is pinned at *exactly* 0.00607 (= 0.006068), which is precisely the total exact probability mass of the two aligned states (2 x 0.003034). The mechanism is exact: at an aligned state the local field is `I=-2`, and `tanh(2)=0.9640` exceeds the top reachable quantization level 0.9375, so a coarsely quantized comparator can never leave the aligned basin -- the empirical aligned-state frequency is exactly 0, and the residual TV is the mass that should have been there. For k>=6 this unlocks and TV falls to ~0.001.
 
 The same-generator contrast is the sharpest cross-task point: the **8-bit LFSR is statistically indistinguishable from ideal on MNIST** (96.22% at S=32 vs ideal 96.16-96.18%) yet sits at **TV=0.0739 on the triangle -- ~82x the ideal TV of 0.0009**. A generator that is "good enough" for a feedforward classifier is badly inadequate for a sampling task. On the triangle, correlation acts through a *different channel* than in the p-DNN: here rho correlates successive Gibbs *update* draws and directly corrupts the Markov chain (TV 0.021-0.032, non-monotonic, peaking near rho=0.5). The results file explicitly disclaims equivalence between this Gibbs-update correlation and the across-sample correlation of E3/H3 -- both are "correlated randomness," but they are structurally different corruption channels, and we make no claim mapping one to the other. **Verdict: supported** -- reliability thresholds are task-dependent, with the LFSR8 and bit-depth-threshold results the cleanest provable half.
 
-![Appendix: exact vs empirical triangle probabilities and RNG stat-test summary](plots/fig9_triangle_validation.png)
+![Appendix: exact vs empirical triangle probabilities and RNG stat-test summary](../plots/fig9_triangle_validation.png)
 
 ### 3.5 H5 -- noise-aware training mitigates but does not remove the correlation penalty (mixed, stated honestly)
 
 We compare the frozen route against a straight-through-estimator (STE) route that trains with the p-bit forward pass (2 train seeds each at S_train=1 and S_train=4).
 
-![Frozen vs STE-trained accuracy vs S under ideal, bias, and correlated noise](plots/fig8_ste_robustness.png)
+![Frozen vs STE-trained accuracy vs S under ideal, bias, and correlated noise](../plots/fig8_ste_robustness.png)
 
 The picture is defect-specific, and we report both absolute deltas and each net's degradation from its *own* clean baseline (because STE and frozen nets have different ceilings -- a baseline confound).
 
