@@ -1,0 +1,103 @@
+{
+  "_meta": {
+    "description": "Route-2 STE (sample-aware) training of MID (64,32) p-DNN. STE forward=sign(tanh(z)-r), backward=d/dz tanh(z); ideal Uniform[-1,1] noise during training. Checkpoints are models.net.MLP-compatible and scored by the same models.pdnn.evaluate protocol as the frozen baselines.",
+    "hidden": [
+      64,
+      32
+    ],
+    "tag": "mid",
+    "S_train_values": [
+      1,
+      4
+    ],
+    "seeds": [
+      0,
+      1
+    ],
+    "lr": 0.001,
+    "batch_size": 128,
+    "epochs": 6,
+    "gate": {
+      "S": 16,
+      "threshold": 0.9,
+      "mode": "own stochastic p-bit inference, ideal noise, full 10k test",
+      "applies_to": "S_train=1 variant",
+      "s1_gate_accs": [
+        0.9513000249862671,
+        0.9516000151634216
+      ],
+      "passed": true
+    },
+    "total_seconds": 37.10361909866333
+  },
+  "runs": [
+    {
+      "S_train": 1,
+      "seed": 0,
+      "epoch_losses": [
+        0.8468635854944746,
+        0.40230977719526556,
+        0.3346656039198324,
+        0.2954366277974806,
+        0.27363821597241644,
+        0.25107654566958004
+      ],
+      "final_train_loss": 0.25107654566958004,
+      "gate_stoch_acc": 0.9513000249862671,
+      "det_tanh_acc": 0.953499972820282,
+      "train_seconds": 8.027011156082153,
+      "ckpt": "ste_S1_s0.pt"
+    },
+    {
+      "S_train": 1,
+      "seed": 1,
+      "epoch_losses": [
+        0.8441413311815974,
+        0.3962751831263622,
+        0.3268397556566226,
+        0.2882101967899022,
+        0.26447471069183937,
+        0.24451708396487654
+      ],
+      "final_train_loss": 0.24451708396487654,
+      "gate_stoch_acc": 0.9516000151634216,
+      "det_tanh_acc": 0.953499972820282,
+      "train_seconds": 7.833216190338135,
+      "ckpt": "ste_S1_s1.pt"
+    },
+    {
+      "S_train": 4,
+      "seed": 0,
+      "epoch_losses": [
+        0.6634380127003452,
+        0.2824562565921975,
+        0.21659067077740932,
+        0.18278811377153467,
+        0.15930208880732308,
+        0.14323842989356278
+      ],
+      "final_train_loss": 0.14323842989356278,
+      "gate_stoch_acc": 0.9591000080108643,
+      "det_tanh_acc": 0.9623000025749207,
+      "train_seconds": 10.038532972335815,
+      "ckpt": "ste_S4_s0.pt"
+    },
+    {
+      "S_train": 4,
+      "seed": 1,
+      "epoch_losses": [
+        0.6510576600077819,
+        0.2684216748104929,
+        0.21102307827424394,
+        0.17727834457305194,
+        0.15505043801658952,
+        0.1381417534975355
+      ],
+      "final_train_loss": 0.1381417534975355,
+      "gate_stoch_acc": 0.9613999724388123,
+      "det_tanh_acc": 0.9645000100135803,
+      "train_seconds": 10.641196012496948,
+      "ckpt": "ste_S4_s1.pt"
+    }
+  ]
+}
