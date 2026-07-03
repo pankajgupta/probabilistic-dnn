@@ -50,7 +50,7 @@ This is the headline. We sweep accuracy versus number of inference samples S for
 
 ![Headline: accuracy vs samples S for ideal, rho=0.9/0.99/1.0, and k=2-independent noise](../plots/fig4_headline_sampling_fragility.png)
 
-The ideal sampling gain on the mid net is +13.68 pp (82.55%->96.30%, S=1->64). Correlation degrades it in a graded, not binary, way:
+The ideal sampling gain on the mid net is +13.75 pp (82.55%->96.30%, S=1->64). Correlation degrades it in a graded, not binary, way:
 
 | rho | S=1 | S=4 | S=16 | S=64 | gain S1->S64 | % of ideal gain |
 |----|------|------|------|------|-------------|-----------------|
@@ -117,7 +117,7 @@ The mechanism is not defect-specific immunity. STE simply has much better *singl
 - **Parametric, not device, noise.** Every defect except the LFSR is a parametric model of a hardware imperfection, not a measured device noise trace. The LFSR is the one physically realizable generator we test.
 - **Frozen-weight route is dominant.** Four of five experiments use add-noise-to-a-trained-model; the STE route is a limited 2-seed extension on the mid width only.
 - **The correlation channel differs between tasks.** Feedforward across-sample correlation (H3) and triangle Gibbs-update correlation (H4) are distinct corruption channels; the strong H3 conclusion does not transfer mechanistically to H4, and we do not claim it does.
-- **Calibration is ambiguous.** ECE rises with S even under ideal noise (underconfidence from averaging) and is *lower* under rho=1.0, so ECE cannot be used as a proxy for randomness quality here; the ECE panel is single-train-seed.
+- **Calibration is ambiguous.** ECE rises with S even under ideal noise (underconfidence from averaging) and is *lower* under rho=1.0, so ECE cannot be used as a proxy for randomness quality here; the ECE panel is single-train-seed. A further metric inconsistency was confirmed in independent verification: the ECE computation labels correctness by argmax of the averaged softmax while the accuracy metric uses argmax of averaged logits; the two disagree on 0.7-1.45% of test examples at S>=4 (a +/-0.25-0.4 pp effect on the ECE-implied accuracy, not affecting any reported accuracy numbers).
 - **Single-figure effect sizes.** Effects are reported with +/-1 sigma over seeds and a 2-sigma-vs-noise-seed significance flag, but we did not run formal confidence intervals beyond that, and the S=1 "coarse-noise improvement" mechanism and the STE mechanism are inferences from the data pattern, not direct measurements.
 
 ## 6. Reproducibility

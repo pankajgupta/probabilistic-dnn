@@ -57,6 +57,11 @@ and diff** (e.g. `git stash` your results or copy `results/` aside first).
 - The verdicts, not the third decimal, are what you are verifying. A discrepancy
   that flips a verdict matters; a 0.1 pp wiggle does not. Report both kinds, but
   distinguish them.
+- Practical tip: the long-running scripts buffer their stdout — if you redirect to
+  a log and tail it, you will see nothing until the end. Run them with `python -u`
+  or monitor process CPU instead. (A dry run of this protocol on the reference
+  machine completed V1–V9 in ~43 min, all steps passing; the per-step estimates
+  are deliberately padded.)
 
 ## 3. Verification protocol (run in this order; each step has expected numbers)
 
@@ -130,7 +135,7 @@ sanity curve within noise std; ρ=1 flat at the S=1 level within ~0.2 pp):
 |------|-------|-------|-------|-------|--------------------|
 | 0.0  | 82.55 | 93.75 | 95.89 | 96.30 | 13.75 pp (100%)    |
 | 0.9  | 82.55 | 87.53 | 91.71 | 94.94 | 12.39 pp (90%)     |
-| 0.99 | 82.55 | 84.54 | 86.49 | 89.31 | 6.77 pp (49%)      |
+| 0.99 | 82.55 | 84.54 | 86.49 | 89.31 | 6.76 pp (49%)      |
 | 1.0  | 82.55 | 82.59 | 82.52 | 82.38 | ~0                 |
 
 Headline contrast at S=64: **k=2-independent 96.16% vs ρ=0.9-correlated 94.94%**
