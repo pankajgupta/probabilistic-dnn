@@ -39,11 +39,23 @@ class NoiseConfig:
         one draw. Mutually exclusive with shared_across_neurons.
     shared_across_neurons: if True, the same r is used by all H neurons in
         a layer for a given (sample, batch item), but iid across samples and
-        batch items. An alternative correlation axis to rho.
+        batch items. An alternative correlation axis to rho. MLP-only (the
+        conv analogue is conv_broadcast, below).
     uniform_source: optional callable(n) -> array-like of n uniforms in
         [0,1), e.g. a hardware-like LFSR generator. If given, it replaces
         the default torch.Generator draw everywhere r is needed (including
         as the base variate for the AR(1) copula).
+    conv_broadcast: broadcast mode for conv-stage noise, shape (S,B,C,H,W)
+        (see make_noise_conv). One of:
+          None (default): fully independent draw at every (s,b,c,h,w).
+          "share_per_channel": one draw per (s,b,c), broadcast over h,w --
+              models one shared RNG per feature-map channel in hardware.
+          "share_per_position": one draw per (s,b,h,w), broadcast over c --
+              models one shared RNG per spatial position, reused by every
+              channel's comparator at that position.
+        Ignored by the MLP path (make_noise/pdnn_forward). Composable with
+        rho (rho decorrelates along S; conv_broadcast reduces independence
+        along C and/or H,W -- orthogonal axes).
     """
 
     bitdepth: Optional[int] = None
@@ -51,6 +63,7 @@ class NoiseConfig:
     rho: float = 0.0
     shared_across_neurons: bool = False
     uniform_source: Optional[Callable[[int], np.ndarray]] = None
+    conv_broadcast: Optional[str] = None
 
 
 _UNIT_EPS = 1e-12  # clamp for ndtri so 0/1 don't map to +-inf
@@ -115,6 +128,49 @@ def make_noise(shape, generator=None, cfg=None):
         r = _ar1_copula_uniform((S, B, H), cfg.rho, generator, cfg.uniform_source)
     else:
         u = _draw_uniform((S, B, H), generator, cfg.uniform_source)
+        r = 2.0 * u - 1.0
+
+    if cfg.bitdepth is not None:
+        r = quantize(r, cfg.bitdepth)
+    if cfg.bias:
+        r = torch.clamp(r + cfg.bias, -1.0, 1.0)
+    return r.to(torch.float32)
+
+
+def make_noise_conv(shape, generator=None, cfg=None):
+    """Draw the comparator noise r for a conv feature map, shape (S,B,C,H,W).
+
+    Composes the same defects as make_noise (bitdepth, bias, rho along the
+    sample axis -- reuses _ar1_copula_uniform / _draw_uniform directly, no
+    duplicated math) plus two conv-only broadcast modes selected by
+    cfg.conv_broadcast (see NoiseConfig's docstring):
+      None                  -> draw at the full (S,B,C,H,W).
+      "share_per_channel"   -> draw at (S,B,C,1,1); relies on ordinary
+                                 tensor broadcasting to cover H,W when the
+                                 caller does `a - r`.
+      "share_per_position"  -> draw at (S,B,1,H,W); broadcasts over C.
+    Returning the reduced-shape tensor (rather than an expanded copy) both
+    avoids allocating S*B*C*H*W elements for the "shared" cases and is the
+    most direct way to make the sharing explicit: any two elements that
+    map to the same reduced-shape entry are, by construction, the same
+    draw. cfg.shared_across_neurons is MLP-only and is ignored here.
+    """
+    cfg = cfg or NoiseConfig()
+    S, B, C, H, W = shape
+    mode = cfg.conv_broadcast
+    if mode is None:
+        draw_shape = (S, B, C, H, W)
+    elif mode == "share_per_channel":
+        draw_shape = (S, B, C, 1, 1)
+    elif mode == "share_per_position":
+        draw_shape = (S, B, 1, H, W)
+    else:
+        raise ValueError(f"unknown conv_broadcast mode: {mode!r}")
+
+    if cfg.rho:
+        r = _ar1_copula_uniform(draw_shape, cfg.rho, generator, cfg.uniform_source)
+    else:
+        u = _draw_uniform(draw_shape, generator, cfg.uniform_source)
         r = 2.0 * u - 1.0
 
     if cfg.bitdepth is not None:
@@ -211,6 +267,168 @@ def evaluate(model_or_weights, dataset_tensors, S, cfg=None, seed=0, return_prob
     X, y = dataset_tensors
     avg_logits, sample_logits = pdnn_forward(model_or_weights, X, S, cfg, seed,
                                               return_samples=True)
+    y = torch.as_tensor(y)
+    preds = avg_logits.argmax(dim=1)
+    acc = (preds == y).float().mean().item()
+    if return_probs:
+        probs = torch.softmax(sample_logits, dim=-1).mean(dim=0)
+        return acc, probs
+    return acc
+
+
+# ---------------------------------------------------------------------------
+# p-DNN forward / evaluate -- conv path (models/cnn.py's CNN class)
+# ---------------------------------------------------------------------------
+#
+# Same primitive as the MLP path above (m = sign(tanh(z) - r), logits
+# averaged over S), replayed stage-by-stage over a model's `.stages` list
+# (see models/cnn.py): every "conv" and "fc" stage's tanh is replaced by the
+# p-bit comparator; "pool" and the final "fc_out" stage are deterministic
+# and operate directly on the {-1,+1} p-bit codes, exactly mirroring how
+# pdnn_forward's linear output layer consumes the last hidden layer's codes.
+
+_CONV_CHUNK_SAFETY_FACTOR = 4  # conv activations, r, m coexist per stage (+ headroom)
+
+
+def _apply_over_sb(x, module):
+    """Reshape (S,B,*rest) -> (S*B,*rest), apply an nn.Module, reshape back."""
+    S, B = x.shape[0], x.shape[1]
+    rest = x.shape[2:]
+    flat = x.reshape(S * B, *rest)
+    out = module(flat)
+    return out.view(S, B, *out.shape[1:])
+
+
+def _get_conv_stages(model):
+    """Return model.stages: an ordered [(module_or_'flatten', kind), ...]
+    list, kind in {"conv","pool","flatten","fc","fc_out"} (see models/cnn.py's
+    CNN.stages). This module is weight-only for the MLP path but the conv
+    path needs actual nn.Conv2d/nn.MaxPool2d/nn.Linear modules (their forward
+    logic, e.g. padding/stride, isn't just a matmul), so it takes a live
+    model rather than duck-typed weight tuples.
+    """
+    if not hasattr(model, "stages"):
+        raise ValueError(
+            "pdnn_forward_conv needs a model exposing `.stages` "
+            "(see models/cnn.py's CNN class)"
+        )
+    return model.stages
+
+
+def _trace_max_elems_per_sample(stages, x1):
+    """Run a shape-only trace (batch size 1, S folded into batch) to find the
+    largest per-(s,b) element count across all stochastic stages, and the
+    final output width. Used to size the chunk so a live (S,b,...) tensor at
+    any stage stays within budget; the trace itself is a single cheap
+    B=1 forward pass, not part of the timed/noised computation.
+    """
+    with torch.no_grad():
+        x = x1
+        max_elems = x.shape[1:].numel() if x.dim() > 1 else 1
+        for layer, kind in stages:
+            if kind == "conv":
+                x = layer(x)
+                max_elems = max(max_elems, x.shape[1:].numel())
+            elif kind == "pool":
+                x = layer(x)
+            elif kind == "flatten":
+                x = x.flatten(1)
+            elif kind == "fc":
+                x = layer(x)
+                max_elems = max(max_elems, x.shape[1:].numel())
+            elif kind == "fc_out":
+                x = layer(x)
+            else:
+                raise ValueError(f"unknown stage kind: {kind!r}")
+    return max_elems, x.shape[-1]
+
+
+def _batch_chunk_size_conv(S, max_elems_per_sample, B):
+    denom = max(1, S * max_elems_per_sample * 4 * _CONV_CHUNK_SAFETY_FACTOR)
+    chunk = max(1, _CHUNK_BUDGET_BYTES // denom)
+    return min(chunk, B)
+
+
+def pdnn_forward_conv(model, X, S, cfg=None, seed=0, return_samples=False):
+    """Run S stochastic p-bit passes over a conv net and average the logits.
+
+    model must expose `.stages` (see models/cnn.py's CNN class): an ordered
+    list of (module, kind) pairs. For "conv"/"fc" stages: z = module(x),
+    a = tanh(z), r = make_noise_conv(...) [conv] or make_noise(...) [fc],
+    m = sign(a - r) in {-1,+1} feeds the next stage. "pool" stages apply
+    their module directly (deterministic, operates on the {-1,+1} codes).
+    "flatten" reshapes (S,B,C,H,W) -> (S,B,C*H*W). "fc_out" is the plain
+    linear output stage (no p-bit), matching pdnn_forward's convention.
+
+    Deterministic given seed: one torch.Generator, consumed sequentially
+    (chunk by chunk, stage by stage) -- same discipline as pdnn_forward.
+
+    Batches are chunked (see _batch_chunk_size_conv) so a live (S,b,C,H,W)
+    tensor at the widest conv stage stays under budget even at S=64.
+
+    Returns avg_logits (B, n_classes); with return_samples also returns the
+    per-sample logits (S, B, n_classes).
+    """
+    stages = _get_conv_stages(model)
+    cfg = cfg or NoiseConfig()
+
+    X = torch.as_tensor(X, dtype=torch.float32)
+    if X.dim() == 1:
+        X = X.unsqueeze(0)
+    if X.dim() == 2:
+        side = int(round(X.shape[1] ** 0.5))
+        X = X.view(X.shape[0], 1, side, side)
+    elif X.dim() == 3:
+        X = X.unsqueeze(1)
+    B = X.shape[0]
+
+    gen = torch.Generator().manual_seed(seed)
+
+    max_elems, n_classes = _trace_max_elems_per_sample(stages, X[:1])
+    chunk = _batch_chunk_size_conv(S, max_elems, B)
+
+    sample_logits = torch.empty(S, B, n_classes)
+    for start in range(0, B, chunk):
+        end = min(start + chunk, B)
+        b = end - start
+        x = X[start:end].unsqueeze(0).expand(S, b, *X.shape[1:])
+        for layer, kind in stages:
+            if kind == "conv":
+                z = _apply_over_sb(x, layer)
+                a = torch.tanh(z)
+                r = make_noise_conv(a.shape, gen, cfg)
+                x = torch.where(a - r >= 0, torch.ones_like(a), -torch.ones_like(a))
+            elif kind == "pool":
+                x = _apply_over_sb(x, layer)
+            elif kind == "flatten":
+                x = x.reshape(x.shape[0], x.shape[1], -1)
+            elif kind == "fc":
+                z = _apply_over_sb(x, layer)
+                a = torch.tanh(z)
+                r = make_noise(a.shape, gen, cfg)
+                x = torch.where(a - r >= 0, torch.ones_like(a), -torch.ones_like(a))
+            elif kind == "fc_out":
+                x = _apply_over_sb(x, layer)
+            else:
+                raise ValueError(f"unknown stage kind: {kind!r}")
+        sample_logits[:, start:end, :] = x
+
+    avg_logits = sample_logits.mean(dim=0)
+    if return_samples:
+        return avg_logits, sample_logits
+    return avg_logits
+
+
+def evaluate_conv(model, dataset_tensors, S, cfg=None, seed=0, return_probs=False):
+    """Accuracy of the conv p-DNN on (X, y), averaging logits over S passes.
+
+    Same contract as evaluate(), for the conv path. With return_probs=True,
+    also returns the per-example, per-sample-averaged softmax (mean over S
+    of softmax(sample_logits)) -- the quantity ECE calibration should use.
+    """
+    X, y = dataset_tensors
+    avg_logits, sample_logits = pdnn_forward_conv(model, X, S, cfg, seed,
+                                                    return_samples=True)
     y = torch.as_tensor(y)
     preds = avg_logits.argmax(dim=1)
     acc = (preds == y).float().mean().item()

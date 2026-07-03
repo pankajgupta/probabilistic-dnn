@@ -1,0 +1,44 @@
+{
+  "cnn_s0": {
+    "tag": "cnn",
+    "conv_channels": [
+      8,
+      16
+    ],
+    "fc_hidden": 64,
+    "seed": 0,
+    "test_acc": 0.9867,
+    "num_params": 20522,
+    "train_seconds": 28.36529302597046
+  },
+  "cnn_s1": {
+    "tag": "cnn",
+    "conv_channels": [
+      8,
+      16
+    ],
+    "fc_hidden": 64,
+    "seed": 1,
+    "test_acc": 0.9875,
+    "num_params": 20522,
+    "train_seconds": 31.638779878616333
+  },
+  "cnn_mean": 0.9871000000000001,
+  "cnn_std": 0.00040000000000001146,
+  "_meta": {
+    "conv_channels": [
+      8,
+      16
+    ],
+    "fc_hidden": 64,
+    "seeds": [
+      0,
+      1
+    ],
+    "lr": 0.001,
+    "batch_size": 128,
+    "epochs": 4,
+    "num_threads": 8,
+    "total_train_seconds": 60.00421094894409
+  }
+}
