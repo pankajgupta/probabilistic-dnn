@@ -2,6 +2,42 @@
 
 Noise quality and the reliability of feedforward probabilistic (p-bit) neural networks.
 
+## Why this exists
+
+**Why stochastic neurons at all?** A deterministic neuron has to actually compute its
+output — "0.73" — with multi-bit multipliers, adders, and activation-function
+circuitry, and then ship that multi-bit number to the next layer. That arithmetic and
+communication is most of the energy bill of a neural network. A **p-bit neuron
+replaces the computation with a coin flip**: it compares its input against a random
+number and emits a single bit (+1/−1), biased to fire with exactly the right
+probability. The activation function comes for free from the *shape of the noise*
+(one comparator instead of computed math — and physical devices like sMTJs flicker
+randomly on their own, so the coin can be device physics you'd otherwise fight to
+suppress). Neurons then exchange 1-bit signals instead of multi-bit numbers, so
+everything downstream shrinks too. The price is a noisy answer — and the remedy is a
+dial: run the network a few times and average, and accuracy climbs back to the
+deterministic level (we measure 82.5% at one sample → 96.3% at 64 samples, with the
+deterministic net at 96.4%). Cheap approximate answers, with a knob to buy accuracy
+back by sampling.
+
+**Why study randomness *quality*?** Because in this scheme the randomness is not a
+garnish — it *is* the computational element: the noise distribution literally is the
+activation function. Corrupt the noise and every neuron silently computes a slightly
+wrong function. And real, affordable hardware randomness is always corrupted somehow:
+generators emit finite-precision words, not real numbers (**quantization**);
+comparators have manufacturing offsets and devices drift with temperature (**bias**);
+true thermal randomness is slow and area-hungry, so designs use pseudo-random LFSRs
+that repeat, or share one generator across many consumers (**correlation**); and
+physical noise has whatever distribution physics provides, not the one the design
+assumed (**mismatch**). The economic bind makes this the load-bearing question: the
+p-bit wins *only if its noise source is cheap*. If every neuron needed a
+gold-plated RNG, the energy advantage would evaporate. So: **how bad can the cheap
+randomness be before the network breaks?** Neither anchor paper asks — both assume
+ideal noise. Our answer, in one line: precision is nearly free to sacrifice, bias
+must be calibrated out, but the draws must be *independent across the repeated
+samples* — averaging correlated samples is polling the same person ten times and
+calling it a survey.
+
 ## The problem
 
 A **p-bit neuron** fires by comparing its input against a random number:
